@@ -23,3 +23,8 @@ variable "dns_zone" {
   description = "teh dns zone name"
   type = string
 }
+
+variable "images" {
+  description = "the images to use"
+  type = map
+}

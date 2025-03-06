@@ -71,6 +71,7 @@ resource "aws_lb" "main" {
     prefix  = "alb-logs"
     enabled = true
   }
+  depends_on = [ aws_s3_bucket_policy.allow_elb_logging ]
 }
 
 # HTTP Listener
@@ -110,7 +111,7 @@ resource "aws_lb_listener" "https" {
 
 # S3 Bucket for ALB Logs
 resource "aws_s3_bucket" "lb_logs" {
-  bucket = "alb-logs-${random_string.random.}"
+  bucket = "alb-logs-${random_string.random.result}"
 }
 
 data "aws_elb_service_account" "main" {}
@@ -125,11 +126,25 @@ data "aws_iam_policy_document" "allow_elb_logging" {
     }
 
     actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.lb_logs.arn}/AWSLogs/*"]
+    resources = ["${aws_s3_bucket.lb_logs.arn}/*"]
   }
 }
 
 resource "aws_s3_bucket_policy" "allow_elb_logging" {
   bucket = aws_s3_bucket.lb_logs.id
   policy = data.aws_iam_policy_document.allow_elb_logging.json
+}
+
+# S3 bucket for application files
+resource "aws_s3_bucket" "app" {
+  bucket = "go-playground-${random_string.random.result}"
+  force_destroy = true
+} 
+
+# S3 bucket files
+resource "aws_s3_object" "app_files" {
+  bucket = aws_s3_bucket.app.bucket
+  for_each = var.images
+  key = each.key
+  source = each.value
 }
